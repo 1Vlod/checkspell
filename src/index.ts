@@ -1,8 +1,9 @@
-import { run } from './helpers/request';
 import { createServer } from 'http';
+import { pipeline } from 'stream';
+
+import config from '../config.json';
 import { SpellerCheck } from './helpers/spellerStream';
 
-const SERVER_PORT = 8080;
 const server = createServer((req, res) => {
   console.log('req.url:', req.url);
   console.log('req.method:', req.method);
@@ -18,9 +19,15 @@ const server = createServer((req, res) => {
     return;
   }
 
+  const spellerCheckStream = new SpellerCheck();
   try {
-    const transform = new SpellerCheck();
-    req.pipe(transform).pipe(res);
+    pipeline(req, spellerCheckStream, res, (err) => {
+      if (err) {
+        console.log('pipeline error: ', err);
+        throw err;
+      }
+      console.log('Pipeline succeed');
+    });
     return;
   } catch (error) {
     console.log('error', error);
@@ -35,11 +42,8 @@ const server = createServer((req, res) => {
   }
 });
 
-server.listen(SERVER_PORT, () => {
-  // if (!existsSync(UPLOADS_DIR_NAME)) {
-  //   mkdirSync(UPLOADS_DIR_NAME);
-  // }
-  console.log(`Server started on ${SERVER_PORT} port`);
+server.listen(config.SERVER_PORT, () => {
+  console.log(`Server started on ${config.SERVER_PORT} port`);
 });
 
 process.on('SIGINT', () => {

@@ -1,0 +1,4 @@
+{
+  "url": "https://speller.yandex.net/services/spellservice.json/checkTexts",
+  "SERVER_PORT": 8080
+}

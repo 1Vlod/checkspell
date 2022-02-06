@@ -1,51 +1,37 @@
 import { request } from 'https';
+import { IResponse } from '../interfaces';
 
-const promiseRequest = (reqOptions: any) => {
+export const promiseRequest = (reqOptions: {
+  method: string;
+  url: URL;
+}): Promise<IResponse> => {
   const options = {
     method: reqOptions.method,
-    headers: {
-      'Content-Type': 'application/json',
-      // 'Content-Length': Buffer.byteLength(body),
-    },
   };
 
-  let url: URL;
-  try {
-    url = new URL(reqOptions.url);
-  } catch (err) {
-    throw err;
-  }
-
   return new Promise((resolve, reject) => {
-    const req = request(url, options, (res) => {
+    const req = request(reqOptions.url, options, (res) => {
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode > 299)) {
+        return reject(new Error(`HTTP status code ${res.statusCode}`));
+      }
       let result = '';
-      let count = 0;
       res.on('data', (chunk: Buffer) => {
-        console.log('count', count++);
         result += chunk.toString();
       });
       res.on('end', () => {
-        resolve(result);
+        let parsedResult;
+        try {
+          parsedResult = JSON.parse(result) as IResponse;
+          resolve(parsedResult);
+        } catch (err) {
+          reject(err);
+        }
       });
     });
 
     req.on('error', (err) => {
       reject(err);
     });
-
-    // req.write(body);
     req.end();
   });
-};
-
-export const run = async () => {
-  try {
-    const result = await promiseRequest({
-      method: 'GET',
-      url: 'https://jsonplaceholder.typicode.com/posts/1',
-    });
-    console.log('result after await: ', result);
-  } catch (error) {
-    console.log('err in await: ', error);
-  }
 };
